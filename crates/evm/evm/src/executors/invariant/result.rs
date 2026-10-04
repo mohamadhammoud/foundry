@@ -503,7 +503,7 @@ mod tests {
         let cheats_config =
             Arc::new(CheatsConfig::new(&Config::default(), EvmOpts::default(), None, None, false));
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default()
+        let mut executor = ExecutorBuilder::new()
             .inspectors(|stack| stack.cheatcodes(cheats_config))
             .gas_limit(1 << 24)
             .build(

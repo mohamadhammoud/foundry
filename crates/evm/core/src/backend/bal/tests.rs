@@ -158,6 +158,9 @@ fn bal_commit_preserves_target_and_untouched_code() {
     );
     let account = backend.basic_ref(readonly).unwrap().unwrap();
     assert_eq!(account.code.unwrap().original_bytes(), prefix_code);
-    assert_eq!(backend.code_by_hash_ref(account.code_hash).unwrap().original_bytes(), prefix_code);
+    assert_eq!(
+        backend.code_by_hash_ref(account.code_hash()).unwrap().original_bytes(),
+        prefix_code
+    );
     assert!(backend.basic_ref(missing).unwrap().is_none());
 }

@@ -1745,7 +1745,7 @@ fn convert_executed_result<FEN: FoundryEvmNetwork, H: IntoInstructionResult>(
             (reason.into_instruction_result(), 0_u64, gas.tx_gas_used(), None, logs)
         }
     };
-    let stipend = calculate_stipend(&tx_env, &evm_env.cfg_env);
+    let stipend = calculate_stipend(&tx_env, evm_env.cfg_env());
 
     let result = match &out {
         Some(Output::Call(data)) => data.clone(),
@@ -2195,7 +2195,7 @@ mod tests {
     #[test]
     fn block_replay_commits_prefix_and_traces_only_target() {
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().gas_limit(1 << 20).build(
+        let mut executor = ExecutorBuilder::new().gas_limit(1 << 20).build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
@@ -2247,7 +2247,7 @@ mod tests {
     #[test]
     fn block_replay_initializes_create_target_from_canonical_nonce() {
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().gas_limit(1 << 20).build(
+        let mut executor = ExecutorBuilder::new().gas_limit(1 << 20).build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
@@ -2287,7 +2287,7 @@ mod tests {
     #[test]
     fn block_replay_preserves_successful_prefix_deployment() {
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().gas_limit(1 << 20).build(
+        let mut executor = ExecutorBuilder::new().gas_limit(1 << 20).build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
@@ -2426,7 +2426,7 @@ mod tests {
     #[test]
     fn set_spec_id_updates_spec_dependent_cfg_state() {
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().build(
+        let mut executor = ExecutorBuilder::new().build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
@@ -2478,7 +2478,7 @@ mod tests {
         let cheats_config =
             Arc::new(CheatsConfig::new(&Config::default(), EvmOpts::default(), None, None, false));
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default()
+        let mut executor = ExecutorBuilder::new()
             .inspectors(|stack| stack.cheatcodes(cheats_config))
             .spec_id(SpecId::AMSTERDAM)
             .gas_limit(1_000_000)
@@ -2510,7 +2510,7 @@ mod tests {
         let cheats_config =
             Arc::new(CheatsConfig::new(&Config::default(), EvmOpts::default(), None, None, false));
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default()
+        let mut executor = ExecutorBuilder::new()
             .inspectors(|stack| stack.cheatcodes(cheats_config))
             .spec_id(SpecId::AMSTERDAM)
             .gas_limit(1_000_000)
@@ -2556,7 +2556,7 @@ mod tests {
     #[test]
     fn set_trace_requirements_replaces_trace_mode_between_transactions() {
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().gas_limit(1 << 20).build(
+        let mut executor = ExecutorBuilder::new().gas_limit(1 << 20).build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
@@ -2600,7 +2600,7 @@ mod tests {
     fn early_exit_interrupts_active_evm_execution() {
         const GAS_LIMIT: u64 = 1 << 24;
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().gas_limit(GAS_LIMIT).build(
+        let mut executor = ExecutorBuilder::new().gas_limit(GAS_LIMIT).build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
@@ -2640,7 +2640,7 @@ mod tests {
     #[test]
     fn completed_execution_is_not_retroactively_cancelled() {
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().gas_limit(1 << 24).build(
+        let mut executor = ExecutorBuilder::new().gas_limit(1 << 24).build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
@@ -2662,7 +2662,7 @@ mod tests {
     fn campaign_deadline_interrupts_active_evm_execution() {
         const GAS_LIMIT: u64 = 1 << 24;
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().gas_limit(GAS_LIMIT).build(
+        let mut executor = ExecutorBuilder::new().gas_limit(GAS_LIMIT).build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
@@ -2690,7 +2690,7 @@ mod tests {
     #[test]
     fn beacon_root_system_call_does_not_persist_system_address() {
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().spec_id(SpecId::CANCUN).build(
+        let mut executor = ExecutorBuilder::new().spec_id(SpecId::CANCUN).build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
@@ -2727,7 +2727,7 @@ mod tests {
             Arc::new(CheatsConfig::new(&Config::default(), EvmOpts::default(), None, None, false));
 
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default()
+        let mut executor = ExecutorBuilder::new()
             .inspectors(|stack| stack.cheatcodes(cheats_config))
             .spec_id(SpecId::CANCUN)
             .build(EvmEnv::default(), TxEnv::default(), backend, NetworkConfigs::default());

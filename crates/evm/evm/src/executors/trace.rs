@@ -336,7 +336,7 @@ mod tests {
         let mut evm_env = EvmEnvFor::<EthEvmNetwork>::default();
         evm_env.cfg_env.disable_nonce_check = true;
         let mut executor =
-            ExecutorBuilder::default().build(evm_env, tx_env, backend, NetworkConfigs::default());
+            ExecutorBuilder::new().build(evm_env, tx_env, backend, NetworkConfigs::default());
         executor.set_gas_limit(1_000_000);
         executor.set_account_nonce(sender, 7).unwrap();
 

@@ -15,7 +15,7 @@ use crate::{
     workspace,
 };
 use eyre::Result;
-use foundry_common::{compile::ProjectCompiler, sh_eprintln, sh_println};
+use foundry_common::{compile::ProjectCompiler, fs::canonicalize_path, sh_eprintln, sh_println};
 use foundry_compilers::compilers::multi::MultiCompiler;
 use foundry_config::{Config, InlineConfig};
 use foundry_evm::{
@@ -250,7 +250,7 @@ pub fn run_mutations_parallel_with_progress(
     // temp root as well so explicit compiler inputs, project-local remappings, and the project
     // root all use the same path spelling (notably `/private/var` rather than `/var` on macOS).
     let temp_root = std::env::temp_dir();
-    let temp_root = dunce::canonicalize(&temp_root).map_err(|err| {
+    let temp_root = canonicalize_path(&temp_root).map_err(|err| {
         eyre::eyre!("failed to canonicalize mutation temp root {}: {err}", temp_root.display())
     })?;
 
@@ -820,6 +820,7 @@ fn compile_and_test_inner<FEN: FoundryEvmNetwork>(
 mod tests {
     use super::*;
     use alloy_primitives::U256;
+    use foundry_common::fs::canonicalize_path;
     use std::process::Command;
 
     #[test]
@@ -931,7 +932,7 @@ mod tests {
         config.mutation.timeout = Some(5);
 
         let temp_config = temp_config_for_mutation(&config, temp.path());
-        let expected_root = dunce::canonicalize(temp.path()).unwrap();
+        let expected_root = canonicalize_path(temp.path()).unwrap();
 
         assert_eq!(temp_config.root, expected_root);
         assert_eq!(temp_config.src, expected_root.join("contracts"));

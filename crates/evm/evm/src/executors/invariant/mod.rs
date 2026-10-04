@@ -2446,7 +2446,7 @@ mod tests {
     #[test]
     fn assumption_rejection_restores_delayed_block_environment() {
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default()
+        let mut executor = ExecutorBuilder::new()
             .inspectors(|stack| stack.cheatcodes(Arc::new(CheatsConfig::default())))
             .gas_limit(1 << 24)
             .build(
@@ -2855,7 +2855,7 @@ mod tests {
         let invariant_address = Address::repeat_byte(0x11);
         let handler_address = Address::repeat_byte(0x22);
         let backend = Backend::<EthEvmNetwork>::spawn(None).unwrap();
-        let mut executor = ExecutorBuilder::default().gas_limit(GAS_LIMIT).build(
+        let mut executor = ExecutorBuilder::new().gas_limit(GAS_LIMIT).build(
             EvmEnvFor::<EthEvmNetwork>::default(),
             TxEnvFor::<EthEvmNetwork>::default(),
             backend,
