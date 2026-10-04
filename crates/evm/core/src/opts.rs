@@ -10,7 +10,7 @@ use alloy_network::{AnyNetwork, BlockResponse, Network, primitives::HeaderRespon
 use alloy_primitives::{Address, B256, BlockNumber, ChainId, U256};
 use alloy_provider::{Provider, RootProvider};
 use alloy_rpc_types::{
-    BlockId, BlockNumberOrTag,
+    BlockNumberOrTag,
     anvil::{Metadata, NodeInfo},
 };
 use eyre::{OptionExt, WrapErr};
@@ -537,11 +537,7 @@ impl EvmOpts {
         };
         let block = fork_block.ok_or_else(|| eyre::eyre!("fork block must be resolved"))?;
         let provider = self.fork_provider_with_url::<AnyNetwork>(fork_url)?;
-        Ok(!provider
-            .get_code_at(self.create2_deployer)
-            .block_id(BlockId::number(block))
-            .await?
-            .is_empty())
+        Ok(!provider.get_code_at(self.create2_deployer).number(block).await?.is_empty())
     }
 
     /// Returns whether the configured CREATE2 deployer existed at the resolved fork block.
@@ -2811,7 +2807,7 @@ mod tests {
         let fork = evm_opts.resolve_fork().await.unwrap().unwrap();
         let provider = handle.http_provider();
 
-        api.anvil_mine(Some(U256::from(1)), None).await.unwrap();
+        api.anvil_mine(Some(U256::ONE), None).await.unwrap();
         assert!(provider.get_block_number().await.unwrap() > fork.number());
 
         let (evm_env, block) = evm_opts
@@ -2995,11 +2991,8 @@ mod tests {
         let mut invalid_instance = context.instance_id.unwrap_or_default();
         invalid_instance[31] ^= 1;
         context.instance_id = Some(invalid_instance);
-        let invalid = ResolvedFork::new(
+        let invalid = evm_opts.resolved_fork(
             evm_opts.fork_url.as_deref().unwrap(),
-            evm_opts.fork_source_headers(),
-            evm_opts.rpc_jwt.as_deref(),
-            evm_opts.fork_block_number,
             resolved.block(),
             context,
         );

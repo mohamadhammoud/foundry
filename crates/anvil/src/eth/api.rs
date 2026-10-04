@@ -1090,7 +1090,7 @@ impl<N: Network> EthApi<N> {
         let txs = block.map(|b| match b.transactions() {
             BlockTransactions::Full(txs) => U256::from(txs.len()),
             BlockTransactions::Hashes(txs) => U256::from(txs.len()),
-            BlockTransactions::Uncle => U256::from(0),
+            BlockTransactions::Uncle => U256::ZERO,
         });
         Ok(txs)
     }
@@ -1185,8 +1185,7 @@ impl<N: Network> EthApi<N> {
         idx: Index,
     ) -> Result<Option<AnyRpcBlock>> {
         node_info!("eth_getUncleByBlockHashAndIndex");
-        let number =
-            self.backend.ensure_block_number(Some(BlockId::Hash(block_hash.into()))).await?;
+        let number = self.backend.ensure_block_number(Some(BlockId::hash(block_hash))).await?;
         if let Some(fork) = self.get_fork()
             && fork.predates_fork_inclusive(number)
         {
@@ -2930,7 +2929,7 @@ impl EthApi<FoundryNetwork> {
         let txs = block.map(|b| match b.transactions() {
             BlockTransactions::Full(txs) => U256::from(txs.len()),
             BlockTransactions::Hashes(txs) => U256::from(txs.len()),
-            BlockTransactions::Uncle => U256::from(0),
+            BlockTransactions::Uncle => U256::ZERO,
         });
         Ok(txs)
     }
@@ -3665,13 +3664,9 @@ impl EthApi<FoundryNetwork> {
         overrides: EvmOverrides,
     ) -> Result<U256> {
         node_info!("eth_estimateGas");
-        self.do_estimate_gas(
-            request,
-            block_number.or_else(|| Some(BlockNumber::Pending.into())),
-            overrides,
-        )
-        .await
-        .map(U256::from)
+        self.do_estimate_gas(request, block_number.or_else(|| Some(BlockId::pending())), overrides)
+            .await
+            .map(U256::from)
     }
 
     /// Fills a transaction request with default values for missing fields.
@@ -3696,9 +3691,8 @@ impl EthApi<FoundryNetwork> {
 
         // Prefill gas limit with estimated gas and bubble up estimation errors directly.
         if request.gas_limit().is_none() {
-            let estimated_gas = self
-                .do_estimate_gas_typed(request.clone(), Some(BlockNumber::Pending.into()))
-                .await?;
+            let estimated_gas =
+                self.do_estimate_gas_typed(request.clone(), Some(BlockId::pending())).await?;
             request.set_gas_limit(estimated_gas as u64);
         }
 
@@ -4199,7 +4193,7 @@ impl EthApi<FoundryNetwork> {
     pub async fn anvil_mine(&self, num_blocks: Option<U256>, interval: Option<U256>) -> Result<()> {
         node_info!("anvil_mine");
         let interval = interval.map(|i| i.saturating_to::<u64>());
-        let blocks = num_blocks.unwrap_or(U256::from(1));
+        let blocks = num_blocks.unwrap_or(U256::ONE);
         if blocks.is_zero() {
             return Ok(());
         }
@@ -4260,9 +4254,8 @@ impl EthApi<FoundryNetwork> {
                 continue;
             };
             for slot in &item.storage_keys {
-                let account_override = AccountOverride::default().with_state_diff(std::iter::once(
-                    (*slot, B256::from(expected_value.to_be_bytes())),
-                ));
+                let account_override = AccountOverride::default()
+                    .with_state_diff(std::iter::once((*slot, B256::from(expected_value))));
 
                 let state_override = StateOverridesBuilder::default()
                     .append(token_address, account_override)
@@ -4324,12 +4317,8 @@ impl EthApi<FoundryNetwork> {
             })?;
 
         // Set the storage slot to the desired balance
-        self.anvil_set_storage_at(
-            token_address,
-            U256::from_be_bytes(slot.0),
-            B256::from(balance.to_be_bytes()),
-        )
-        .await?;
+        self.anvil_set_storage_at(token_address, U256::from_be_bytes(slot.0), B256::from(balance))
+            .await?;
 
         Ok(())
     }
@@ -4377,12 +4366,8 @@ impl EthApi<FoundryNetwork> {
             })?;
 
         // Set the storage slot to the desired allowance
-        self.anvil_set_storage_at(
-            token_address,
-            U256::from_be_bytes(slot.0),
-            B256::from(amount.to_be_bytes()),
-        )
-        .await?;
+        self.anvil_set_storage_at(token_address, U256::from_be_bytes(slot.0), B256::from(amount))
+            .await?;
 
         Ok(())
     }
@@ -4964,7 +4949,7 @@ impl EthApi<FoundryNetwork> {
                     continue;
                 };
 
-                let receipts = match this.block_receipts(BlockId::Hash(block.hash.into())).await {
+                let receipts = match this.block_receipts(BlockId::hash(block.hash)).await {
                     Ok(Some(mut receipts)) => {
                         if let Some(hashes) = &hash_filter {
                             receipts.retain(|receipt| hashes.contains(&receipt.transaction_hash()));
@@ -5168,7 +5153,7 @@ impl EthApi<FoundryNetwork> {
         if let Some(nonce) = request.nonce {
             Ok(nonce)
         } else {
-            self.get_transaction_count(from, Some(BlockId::Number(BlockNumber::Pending))).await
+            self.get_transaction_count(from, Some(BlockId::pending())).await
         }
     }
 
@@ -5858,7 +5843,7 @@ mod tests {
 
         for percentiles in [vec![-0.5], vec![100.5], vec![50.0, 25.0], vec![50.0, 50.0]] {
             let err =
-                api.fee_history(U256::from(1), BlockNumber::Latest, percentiles).await.unwrap_err();
+                api.fee_history(U256::ONE, BlockNumber::Latest, percentiles).await.unwrap_err();
             assert!(matches!(
                 err,
                 BlockchainError::FeeHistory(FeeHistoryError::InvalidRewardPercentiles)
@@ -5866,7 +5851,7 @@ mod tests {
         }
 
         for percentiles in [vec![], vec![0.0, 100.0]] {
-            api.fee_history(U256::from(1), BlockNumber::Latest, percentiles).await.unwrap();
+            api.fee_history(U256::ONE, BlockNumber::Latest, percentiles).await.unwrap();
         }
     }
 

@@ -1125,10 +1125,7 @@ mod tests {
     use foundry_evm_hardforks::TempoHardfork;
     use revm::database::EmptyDB;
     use std::num::NonZeroU64;
-    use tempo_alloy::primitives::{
-        AASigned, TempoSignature, TempoTransaction,
-        transaction::{Call, PrimitiveSignature},
-    };
+    use tempo_alloy::primitives::{TempoSignature, TempoTransaction, transaction::Call};
     use tempo_evm::TempoEvmFactory;
     use tempo_revm::ExecutionContext;
 
@@ -1275,14 +1272,14 @@ mod tests {
         let mut tx_env = TempoTxEnv {
             inner: TxEnv {
                 kind: old_to,
-                value: U256::from(1),
+                value: U256::ONE,
                 data: Bytes::from_static(b"original bytecode"),
                 ..Default::default()
             },
             tempo_tx_env: Some(Box::new(tempo_revm::TempoBatchCallEnv {
                 aa_calls: vec![Call {
                     to: old_to,
-                    value: U256::from(1),
+                    value: U256::ONE,
                     input: Bytes::from_static(b"original bytecode"),
                 }],
                 ..Default::default()
@@ -1487,10 +1484,7 @@ mod tests {
             sponsor.sign_hash_sync(&tempo_tx.fee_payer_signature_hash(sender.address())).unwrap(),
         );
         let signature = sender.sign_hash_sync(&tempo_tx.signature_hash()).unwrap();
-        let aa_signed = AASigned::new_unhashed(
-            tempo_tx,
-            TempoSignature::Primitive(PrimitiveSignature::Secp256k1(signature)),
-        );
+        let aa_signed = tempo_tx.into_signed(TempoSignature::from(signature));
         let tx_hash = *aa_signed.hash();
         let unique_tx_identifier = aa_signed.expiring_nonce_hash(sender.address());
 
@@ -1607,7 +1601,7 @@ mod tests {
         assert_eq!(call.to, TxKind::Call(address!("0x5ad0000000000000000000000000000000000003")));
         assert_eq!(call.value, U256::ZERO);
         assert_eq!(call.input.len(), 868);
-        assert_eq!(aa.nonce_key, U256::from(1));
+        assert_eq!(aa.nonce_key, U256::ONE);
         assert_eq!(aa.valid_after, None);
         assert_eq!(aa.valid_before, None);
     }

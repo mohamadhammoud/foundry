@@ -290,7 +290,7 @@ fn canonicalize_existing_ancestor(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_primitives::address;
+    use alloy_primitives::Address;
     use foundry_config::fs_permissions::PathPermission;
     use tempfile::TempDir;
 
@@ -363,7 +363,7 @@ mod tests {
 
     #[test]
     fn tracing_labels_override_legacy_labels() {
-        let address = address!("0x0000000000000000000000000000000000000001");
+        let address = Address::with_last_byte(1);
         let mut config = Config::default();
         config.labels.insert(address, "legacy".to_string());
         config.tracing.labels.insert(address, "canonical".to_string());

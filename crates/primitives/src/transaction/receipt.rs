@@ -706,7 +706,7 @@ mod tests {
                     ),
                 }],
             },
-            logs_bloom: [0; 256].into(),
+            logs_bloom: Bloom::ZERO,
         });
 
         receipt.encode(&mut data);
@@ -741,7 +741,7 @@ mod tests {
                     ),
                 }],
             },
-            logs_bloom: [0; 256].into(),
+            logs_bloom: Bloom::ZERO,
         });
 
         let receipt = FoundryReceiptEnvelope::decode(&mut &data[..]).unwrap();
@@ -779,7 +779,7 @@ mod tests {
                     ),
                 }],
             },
-            logs_bloom: [0; 256].into(),
+            logs_bloom: Bloom::ZERO,
         });
 
         assert_eq!(receipt.tx_type(), Some(FoundryTxType::Tempo));
@@ -804,7 +804,7 @@ mod tests {
     fn decode_tempo_receipt() {
         let receipt = FoundryReceiptEnvelope::Tempo(ReceiptWithBloom {
             receipt: Receipt { status: true.into(), cumulative_gas_used: 21000, logs: vec![] },
-            logs_bloom: [0; 256].into(),
+            logs_bloom: Bloom::ZERO,
         });
 
         // Encode and decode via 2718.
@@ -851,7 +851,7 @@ mod tests {
                     data: LogData::new_unchecked(vec![], Bytes::default()),
                 }],
             },
-            logs_bloom: [0; 256].into(),
+            logs_bloom: Bloom::ZERO,
         });
 
         // Map logs to a different type (just clone in this case)

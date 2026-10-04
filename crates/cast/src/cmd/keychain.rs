@@ -1016,7 +1016,7 @@ async fn run_inspect(
     let (_, provider) = tempo_provider(&rpc)?;
 
     let info = provider.get_keychain_key(root_account, key_address).await?;
-    let provisioned = info.keyId != Address::ZERO;
+    let provisioned = !info.keyId.is_zero();
     let is_t3 = is_tempo_hardfork_active(&provider, TempoHardfork::T3).await?;
     // On T6, `isAdminKey` is authoritative for the root/admin distinction.
     let is_admin = is_tempo_hardfork_active(&provider, TempoHardfork::T6).await?
@@ -1090,7 +1090,7 @@ async fn run_inspect(
 async fn run_check(wallet_address: Address, key_address: Address, rpc: RpcOpts) -> Result<()> {
     let (_, provider) = tempo_provider(&rpc)?;
     let info = provider.get_keychain_key(wallet_address, key_address).await?;
-    let provisioned = info.keyId != Address::ZERO;
+    let provisioned = !info.keyId.is_zero();
     let signature_type = abi_key_type(info.signatureType).map_or("unknown", key_type_name);
 
     if shell::is_json() {
@@ -1463,7 +1463,7 @@ impl Doctor {
 
         // Step 5: on-chain key state.
         let registration = match provider.get_keychain_key(root_account, key_address).await {
-            Ok(info) if info.keyId != Address::ZERO => {
+            Ok(info) if !info.keyId.is_zero() => {
                 let key_type = abi_key_type(info.signatureType).map_or("unknown", key_type_label);
                 self.steps.push(DoctorStep::pass(
                     KEY_REGISTRATION,
@@ -3416,7 +3416,7 @@ mod tests {
     use alloy_rlp::Decodable;
 
     fn addr(byte: u8) -> Address {
-        Address::from([byte; 20])
+        Address::repeat_byte(byte)
     }
 
     fn rule(selector: [u8; 4], recipients: Vec<Address>) -> SelectorRule {
@@ -3822,9 +3822,9 @@ mod tests {
         let fee_token = addr(0xAA);
         let limit = |token, limit, period| AuthTokenLimit { token, limit, period };
         let cases = [
-            (limit(addr(0xBB), U256::from(1), 0), Some(true), "not listed"),
+            (limit(addr(0xBB), U256::ONE, 0), Some(true), "not listed"),
             (limit(fee_token, U256::ZERO, 0), Some(true), ""),
-            (limit(fee_token, U256::from(1), 60), None, "hardfork unknown"),
+            (limit(fee_token, U256::ONE, 60), None, "hardfork unknown"),
         ];
         for (limit, is_t3, detail) in cases {
             let signed = signed_authorization_with_limits(Some(vec![limit]));

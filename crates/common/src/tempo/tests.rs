@@ -5,7 +5,7 @@ use serde::Deserialize;
 use std::env;
 
 use crate::FoundryTransactionBuilder;
-use alloy_chains::{Chain, NamedChain};
+use alloy_chains::Chain;
 use alloy_network::TransactionBuilder;
 use alloy_primitives::{Address, Bytes, TxKind, U256, address};
 use alloy_provider::mock::Asserter;
@@ -154,7 +154,7 @@ async fn explicit_fee_token_overrides_stored_user_token_when_applied() -> eyre::
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             Some(&provider),
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(fee_payer),
         )
@@ -172,7 +172,7 @@ async fn default_fee_token_resolution_leaves_transaction_fee_token_unset() -> ey
 
     let resolved = resolve_and_set_fee_token::<TempoNetwork>(
         None,
-        Some(Chain::from_named(NamedChain::Tempo)),
+        Some(Chain::tempo_mainnet()),
         &mut tx,
         None,
     )
@@ -183,7 +183,7 @@ async fn default_fee_token_resolution_leaves_transaction_fee_token_unset() -> ey
     let mut tx = TempoTransactionRequest::default();
     let resolved = resolve_and_set_fee_token::<TempoNetwork>(
         None,
-        Some(Chain::from_named(NamedChain::Tempo)),
+        Some(Chain::tempo_mainnet()),
         &mut tx,
         None,
     )
@@ -192,13 +192,9 @@ async fn default_fee_token_resolution_leaves_transaction_fee_token_unset() -> ey
     assert_eq!(tx.fee_token, None);
 
     let mut tx = TempoTransactionRequest::default();
-    let resolved = resolve_and_set_fee_token::<TempoNetwork>(
-        None,
-        Some(Chain::from_named(NamedChain::Mainnet)),
-        &mut tx,
-        None,
-    )
-    .await?;
+    let resolved =
+        resolve_and_set_fee_token::<TempoNetwork>(None, Some(Chain::mainnet()), &mut tx, None)
+            .await?;
     assert_eq!(resolved, None);
     assert_eq!(tx.fee_token, None);
     Ok(())
@@ -216,7 +212,7 @@ async fn send_fee_token_resolution_can_skip_lookup_for_curl_mode() -> eyre::Resu
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             Some(&provider),
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(fee_payer),
         )
@@ -229,7 +225,7 @@ async fn send_fee_token_resolution_can_skip_lookup_for_curl_mode() -> eyre::Resu
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(fee_payer),
         )
@@ -254,7 +250,7 @@ async fn unset_user_token_does_not_stamp_default_fee_token() -> eyre::Result<()>
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             Some(&provider),
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(fee_payer),
         )
@@ -285,7 +281,7 @@ async fn contract_creation_does_not_stamp_stored_fee_token() -> eyre::Result<()>
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             Some(&provider),
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(fee_payer),
         )
@@ -314,7 +310,7 @@ async fn sponsor_fee_token_resolution_uses_sponsor_address() -> eyre::Result<()>
         sponsor
             .resolve_and_set_fee_token::<TempoNetwork>(
                 Some(&provider),
-                Some(Chain::from_named(NamedChain::Tempo)),
+                Some(Chain::tempo_mainnet()),
                 &mut tx,
             )
             .await?,
@@ -337,7 +333,7 @@ async fn sponsor_fee_token_resolution_preserves_explicit_token() -> eyre::Result
         sponsor
             .resolve_and_set_fee_token::<TempoNetwork>(
                 Some(&provider),
-                Some(Chain::from_named(NamedChain::Tempo)),
+                Some(Chain::tempo_mainnet()),
                 &mut tx,
             )
             .await?,
@@ -352,14 +348,14 @@ async fn distribute_reward_does_not_infer_fee_token() -> eyre::Result<()> {
     let mut tx = TempoTransactionRequest {
         inner: TransactionRequest::default()
             .with_to(ALPHA_USD_ADDRESS)
-            .with_input(ITIP20::distributeRewardCall { amount: U256::from(1) }.abi_encode()),
+            .with_input(ITIP20::distributeRewardCall { amount: U256::ONE }.abi_encode()),
         ..Default::default()
     };
 
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             None,
         )
@@ -373,10 +369,10 @@ async fn distribute_reward_does_not_infer_fee_token() -> eyre::Result<()> {
 #[tokio::test]
 async fn tip20_transfer_calls_infer_called_token() -> eyre::Result<()> {
     for input in [
-        ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::from(1) }.abi_encode(),
+        ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::ONE }.abi_encode(),
         ITIP20::transferWithMemoCall {
             to: Address::repeat_byte(0x01),
-            amount: U256::from(1),
+            amount: U256::ONE,
             memo: Default::default(),
         }
         .abi_encode(),
@@ -389,7 +385,7 @@ async fn tip20_transfer_calls_infer_called_token() -> eyre::Result<()> {
         assert_eq!(
             resolve_and_set_fee_token::<TempoNetwork>(
                 None,
-                Some(Chain::from_named(NamedChain::Tempo)),
+                Some(Chain::tempo_mainnet()),
                 &mut tx,
                 None,
             )
@@ -410,7 +406,7 @@ async fn sponsored_single_tip20_call_does_not_infer_called_token() -> eyre::Resu
             .with_from(sender)
             .with_to(ALPHA_USD_ADDRESS)
             .with_input(
-                ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::from(1) }
+                ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::ONE }
                     .abi_encode(),
             ),
         ..Default::default()
@@ -419,7 +415,7 @@ async fn sponsored_single_tip20_call_does_not_infer_called_token() -> eyre::Resu
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(sponsor),
         )
@@ -434,7 +430,7 @@ async fn sponsored_single_tip20_call_does_not_infer_called_token() -> eyre::Resu
 async fn non_matching_tip20_selectors_do_not_infer_fee_token() -> eyre::Result<()> {
     let mut tx = TempoTransactionRequest {
         inner: TransactionRequest::default().with_to(ALPHA_USD_ADDRESS).with_input(
-            ITIP20::approveCall { spender: Address::repeat_byte(0x01), amount: U256::from(1) }
+            ITIP20::approveCall { spender: Address::repeat_byte(0x01), amount: U256::ONE }
                 .abi_encode(),
         ),
         ..Default::default()
@@ -443,7 +439,7 @@ async fn non_matching_tip20_selectors_do_not_infer_fee_token() -> eyre::Result<(
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             None,
         )
@@ -471,7 +467,7 @@ async fn self_paid_set_user_token_overrides_stored_fee_token() -> eyre::Result<(
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             Some(&provider),
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(sender),
         )
@@ -497,7 +493,7 @@ async fn aa_set_user_token_is_not_inferred() -> eyre::Result<()> {
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(sender),
         )
@@ -512,10 +508,10 @@ async fn aa_set_user_token_is_not_inferred() -> eyre::Result<()> {
 async fn tip20_batch_infers_only_when_calls_match_sender_and_token() -> eyre::Result<()> {
     let sender = Address::repeat_byte(0x11);
     let transfer =
-        ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::from(1) }.abi_encode();
+        ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::ONE }.abi_encode();
     let transfer_with_memo = ITIP20::transferWithMemoCall {
         to: Address::repeat_byte(0x01),
-        amount: U256::from(1),
+        amount: U256::ONE,
         memo: Default::default(),
     }
     .abi_encode();
@@ -531,7 +527,7 @@ async fn tip20_batch_infers_only_when_calls_match_sender_and_token() -> eyre::Re
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(sender),
         )
@@ -551,7 +547,7 @@ async fn tip20_batch_infers_only_when_calls_match_sender_and_token() -> eyre::Re
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(sender),
         )
@@ -570,7 +566,7 @@ async fn tip20_batch_infers_only_when_calls_match_sender_and_token() -> eyre::Re
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(sender),
         )
@@ -586,7 +582,7 @@ async fn tip20_batch_infers_only_when_calls_match_sender_and_token() -> eyre::Re
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(Address::repeat_byte(0x22)),
         )
@@ -602,8 +598,7 @@ async fn non_tip20_transfer_is_not_inferred() -> eyre::Result<()> {
     let erc20 = Address::repeat_byte(0xab);
     let mut tx = TempoTransactionRequest {
         inner: TransactionRequest::default().with_from(sender).with_to(erc20).with_input(
-            ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::from(1) }
-                .abi_encode(),
+            ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::ONE }.abi_encode(),
         ),
         ..Default::default()
     };
@@ -611,7 +606,7 @@ async fn non_tip20_transfer_is_not_inferred() -> eyre::Result<()> {
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(sender),
         )
@@ -625,10 +620,10 @@ async fn non_tip20_transfer_is_not_inferred() -> eyre::Result<()> {
 #[tokio::test]
 async fn tempo_call_inspection_matches_built_aa_call_list() -> eyre::Result<()> {
     let transfer =
-        ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::from(1) }.abi_encode();
+        ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::ONE }.abi_encode();
     let transfer_with_memo = ITIP20::transferWithMemoCall {
         to: Address::repeat_byte(0x01),
-        amount: U256::from(1),
+        amount: U256::ONE,
         memo: Default::default(),
     }
     .abi_encode();
@@ -644,7 +639,7 @@ async fn tempo_call_inspection_matches_built_aa_call_list() -> eyre::Result<()> 
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             None,
         )
@@ -674,7 +669,7 @@ async fn non_tip20_stablecoin_dex_token_in_is_not_inferred() -> eyre::Result<()>
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             None,
         )
@@ -711,7 +706,7 @@ async fn stablecoin_dex_swaps_infer_token_in() -> eyre::Result<()> {
         assert_eq!(
             resolve_and_set_fee_token::<TempoNetwork>(
                 None,
-                Some(Chain::from_named(NamedChain::Tempo)),
+                Some(Chain::tempo_mainnet()),
                 &mut tx,
                 None,
             )
@@ -740,7 +735,7 @@ async fn stablecoin_dex_batch_inference_requires_one_call() -> eyre::Result<()> 
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             None,
         )
@@ -758,7 +753,7 @@ async fn stablecoin_dex_batch_inference_requires_one_call() -> eyre::Result<()> 
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             None,
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             None,
         )
@@ -780,7 +775,7 @@ async fn stored_fee_token_overrides_inferred_fee_token() -> eyre::Result<()> {
             .with_from(fee_payer)
             .with_to(ALPHA_USD_ADDRESS)
             .with_input(
-                ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::from(1) }
+                ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::ONE }
                     .abi_encode(),
             ),
         ..Default::default()
@@ -790,7 +785,7 @@ async fn stored_fee_token_overrides_inferred_fee_token() -> eyre::Result<()> {
     assert_eq!(
         resolve_and_set_fee_token::<TempoNetwork>(
             Some(&provider),
-            Some(Chain::from_named(NamedChain::Tempo)),
+            Some(Chain::tempo_mainnet()),
             &mut tx,
             Some(fee_payer),
         )
@@ -805,20 +800,14 @@ async fn stored_fee_token_overrides_inferred_fee_token() -> eyre::Result<()> {
 async fn non_tempo_chains_do_not_infer_fee_token() -> eyre::Result<()> {
     let mut tx = TempoTransactionRequest {
         inner: TransactionRequest::default().with_to(ALPHA_USD_ADDRESS).with_input(
-            ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::from(1) }
-                .abi_encode(),
+            ITIP20::transferCall { to: Address::repeat_byte(0x01), amount: U256::ONE }.abi_encode(),
         ),
         ..Default::default()
     };
 
     assert_eq!(
-        resolve_and_set_fee_token::<TempoNetwork>(
-            None,
-            Some(Chain::from_named(NamedChain::Mainnet)),
-            &mut tx,
-            None,
-        )
-        .await?,
+        resolve_and_set_fee_token::<TempoNetwork>(None, Some(Chain::mainnet()), &mut tx, None,)
+            .await?,
         None
     );
     assert_eq!(tx.fee_token, None);
